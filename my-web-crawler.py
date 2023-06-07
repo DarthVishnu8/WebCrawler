@@ -4,11 +4,13 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 from urllib.robotparser import RobotFileParser as rbp
 
+#lists of links
 visited_links = set()
 file_counts = {}
 files = {}
 
 def extract_last_word(url):
+#for getting url of sitemap from robots.txt
     # Retrieve the HTML content of the page
     response = requests.get(url)
     html_content = response.text
@@ -28,13 +30,15 @@ def extract_last_word(url):
     return last_word
     
 def extract_locs_from_sitemap(url):
+#for getting urls from sitemap
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'xml')
     locs = soup.find_all('loc')
     loc_urls = [loc.text for loc in locs]
     return loc_urls
 
-def check_robots(domain):
+def rules_robots(domain):
+#extract the robots.txt guidelines
     robots_txt_url = "http://" + domain + "/robots.txt"
     response = requests.get(robots_txt_url)
     rp = rbp()
@@ -42,9 +46,11 @@ def check_robots(domain):
     return rp
 
 def crawl(url, threshold, output_file, robots):
+#main crawler
+    #get domain of url
     parsed_url = urlparse(url)
     domain = parsed_url.netloc
-    robots_txt = check_robots(domain) if robots else None
+    robots_txt = rules_robots(domain) if robots else None
     
     def extract_file_type(link):
         # Extract the file extension from the link
@@ -54,18 +60,19 @@ def crawl(url, threshold, output_file, robots):
         return file_type
 
     def process_link(link, depth):
+        #dont check visited links or go too deep
         if link in visited_links or depth > threshold:
             return
-
+        #add the checked link in visited links list
         visited_links.add(link)
         response = requests.get(link, allow_redirects=True)
-
+        #deadends
         if response.status_code != 200:
             return
-
+        #find all links
         soup = BeautifulSoup(response.text, "html.parser")
         links = soup.find_all(["a", "link", "script", "img"])
-
+        #get href and src links
         for link in links:
             href = link.get("href")
             src = link.get("src")
@@ -74,17 +81,18 @@ def crawl(url, threshold, output_file, robots):
                 href = urljoin(url, href)
                 parsed_href = urlparse(href)
                 newdom = parsed_href.netloc
-
+                #increment the corresponding filetype
                 file_type = extract_file_type(href)
                 if file_type:
                     file_counts[file_type] = file_counts.get(file_type, 0) + 1
                     files.setdefault(file_type, []).append(href)
-                    #if output_file:
-                    #    output_file.write(f"{href}\n")
+                #if robots flag is on check if it is in the rules
                 if newdom == domain and (not robots_txt or robots_txt.can_fetch("*", href)):
+                    #go deeper
                     process_link(href, depth + 1)
 
             if src:
+                #similar to href but src
                 src = urljoin(url, src)
                 parsed_src = urlparse(src)
                 newdom = parsed_src.netloc
@@ -93,13 +101,12 @@ def crawl(url, threshold, output_file, robots):
                 if file_type:
                     file_counts[file_type] = file_counts.get(file_type, 0) + 1
                     files.setdefault(file_type, []).append(src)
-                    #if output_file:
-                    #    output_file.write(f"{src}\n")
                 if newdom == domain and (not robots_txt or robots_txt.can_fetch("*", src)):
                     process_link(src, depth + 1)
 
     process_link(url, 1)
     if not output_file:
+        #for printing on terminal
         if robots:
             print("Checking robots.txt")
             response = requests.get("https://"+domain+"/robots.txt")    
@@ -126,6 +133,7 @@ def crawl(url, threshold, output_file, robots):
             for link in links:
                 print(link)
     else:
+        #for printing in the output file
         with open(output_file,"w") as f:
             if robots:
                 f.write("Checking robots.txt \n")
@@ -155,6 +163,7 @@ def crawl(url, threshold, output_file, robots):
    
 
 if __name__ == "__main__":
+    #get arguments from cli
     parser = ap()
     parser.add_argument("-u", "--url", type=str, required=True)
     parser.add_argument("-t", "--threshold", type=int, default=float('inf'))
