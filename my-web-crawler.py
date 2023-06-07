@@ -8,14 +8,38 @@ visited_links = set()
 file_counts = {}
 files = {}
 
+def extract_last_word(url):
+    # Retrieve the HTML content of the page
+    response = requests.get(url)
+    html_content = response.text
+
+    # Parse the HTML content
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # Extract the text content from the HTML
+    text = soup.get_text()
+
+    # Split the text into words
+    words = text.split()
+
+    # Retrieve the last word
+    last_word = words[-1] if words else None
+
+    return last_word
+    
+def extract_locs_from_sitemap(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'xml')
+    locs = soup.find_all('loc')
+    loc_urls = [loc.text for loc in locs]
+    return loc_urls
+
 def check_robots(domain):
     robots_txt_url = "http://" + domain + "/robots.txt"
     response = requests.get(robots_txt_url)
     rp = rbp()
     rp.parse(response.text.splitlines())
     return rp
-
-
 
 def crawl(url, threshold, output_file, robots):
     parsed_url = urlparse(url)
@@ -81,6 +105,16 @@ def crawl(url, threshold, output_file, robots):
             response = requests.get("https://"+domain+"/robots.txt")    
             if response.status_code == 200:
                 print("robots.txt file found on", url)
+                print("Checking sitemap")
+                smap = extract_last_word("https://"+domain+"/robots.txt")
+                response = requests.get(smap)
+                if response.status_code == 200:
+                    maplist = extract_locs_from_sitemap(smap)
+                    print("Sitemap :")
+                    for word in maplist:
+                        print(word)
+                else:
+                    print("No sitemap found\n")
             else:
                 print("No robots.txt file found on", url)
         else:
@@ -94,21 +128,31 @@ def crawl(url, threshold, output_file, robots):
     else:
         with open(output_file,"w") as f:
             if robots:
-                f.write("Checking robots.txt")
+                f.write("Checking robots.txt \n")
                 response = requests.get("https://"+domain+"/robots.txt")    
                 if response.status_code == 200:
-                    f.write("robots.txt file found on", url)
+                    f.write("robots.txt file found on "+ url+"\n")
+                    f.write("Checking sitemap\n")
+                    smap = extract_last_word("https://"+domain+"/robots.txt")
+                    response = requests.get(smap)
+                    if response.status_code == 200:
+                         maplist = extract_locs_from_sitemap(smap)
+                         f.write("Sitemap : "+str(len(maplist))+"\n")
+                         for word in maplist:
+                                f.write(word + "\n")
+                    else:
+                        f.write("No sitemap found\n")
                 else:
-                    f.write("No robots.txt file found on", url)
+                    f.write("No robots.txt file found on "+ url + "\n")
             else:
-               f.write("Not checking for robots.txt")
+               f.write("Not checking for robots.txt \n")
             f.write(f"At recursion level {threshold}\n")
             f.write("Total files found:"+ str(sum(file_counts.values()))+"\n")
             for file_type, links in files.items():
                 f.write(file_type.capitalize() + ":" + str(len(links))+"\n")
                 for link in links:
                     f.write(link+"\n")  
-            
+   
 
 if __name__ == "__main__":
     parser = ap()
