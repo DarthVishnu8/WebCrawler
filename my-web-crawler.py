@@ -2,15 +2,25 @@ from argparse import ArgumentParser as ap
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
+from urllib.robotparser import RobotFileParser as rbp
 
 visited_links = set()
 file_counts = {}
 files = {}
 
-def crawl(url, threshold, output_file):
-    
+def check_robots(domain):
+    robots_txt_url = "http://" + domain + "/robots.txt"
+    response = requests.get(robots_txt_url)
+    rp = rbp()
+    rp.parse(response.text.splitlines())
+    return rp
+
+
+
+def crawl(url, threshold, output_file, robots):
     parsed_url = urlparse(url)
     domain = parsed_url.netloc
+    robots_txt = check_robots(domain) if robots else None
     
     def extract_file_type(link):
         # Extract the file extension from the link
@@ -47,7 +57,7 @@ def crawl(url, threshold, output_file):
                     files.setdefault(file_type, []).append(href)
                     #if output_file:
                     #    output_file.write(f"{href}\n")
-                if newdom == domain:
+                if newdom == domain and (not robots_txt or robots_txt.can_fetch("*", href)):
                     process_link(href, depth + 1)
 
             if src:
@@ -61,11 +71,20 @@ def crawl(url, threshold, output_file):
                     files.setdefault(file_type, []).append(src)
                     #if output_file:
                     #    output_file.write(f"{src}\n")
-                if newdom == domain:
+                if newdom == domain and (not robots_txt or robots_txt.can_fetch("*", src)):
                     process_link(src, depth + 1)
 
     process_link(url, 1)
     if not output_file:
+        if robots:
+            print("Checking robots.txt")
+            response = requests.get("https://"+domain+"/robots.txt")    
+            if response.status_code == 200:
+                print("robots.txt file found on", url)
+            else:
+                print("No robots.txt file found on", url)
+        else:
+            print("Not checking for robots.txt")
         print(f"At recursion level {threshold}")
         print("Total files found:", sum(file_counts.values()))
         for file_type, links in files.items():
@@ -74,6 +93,15 @@ def crawl(url, threshold, output_file):
                 print(link)
     else:
         with open(output_file,"w") as f:
+            if robots:
+                f.write("Checking robots.txt")
+                response = requests.get("https://"+domain+"/robots.txt")    
+                if response.status_code == 200:
+                    f.write("robots.txt file found on", url)
+                else:
+                    f.write("No robots.txt file found on", url)
+            else:
+               f.write("Not checking for robots.txt")
             f.write(f"At recursion level {threshold}\n")
             f.write("Total files found:"+ str(sum(file_counts.values()))+"\n")
             for file_type, links in files.items():
@@ -87,15 +115,16 @@ if __name__ == "__main__":
     parser.add_argument("-u", "--url", type=str, required=True)
     parser.add_argument("-t", "--threshold", type=int, default=float('inf'))
     parser.add_argument("-o", "--output", type=str)
+    parser.add_argument("-r", "--robot", action="store_true")
     
     args = parser.parse_args()
     
     url = args.url
     threshold = args.threshold
     output = args.output
+    robots = args.robot
     
     if not output:
-        crawl(url,threshold,None)
+        crawl(url,threshold,None,robots)
     else:
-        crawl(url,threshold,output)
-
+        crawl(url,threshold,output,robots)
