@@ -1,0 +1,190 @@
+\documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+\usepackage{hyperref}
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\title{CS104 - Software Systems Lab Project}
+\author{Lakshya Gadhwal}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A recursive python web crawler which groups web links with "src" and "href" attribute under different extensions. It crawls only those links which have the same domain as the original url. However it lists the external links even though they are not crawled further. It also classifies the links obtained as a part of the problem statement. It also has an extra functionality of looking at the robots.txt guidelines for web crawlers and printing the sitemap if it exists.
+\end{abstract}
+
+\section{Motivation}
+
+This project seemed exciting as I have great interest in the inner workings of the internet. After having completed the project I can say it was really informative and enticing.
+
+\section{Implementation}
+
+
+\subsection{Introduction}
+Web Crawling at its core is basically extracting links to other documents or webpages from a given webpage. This task is easily achieved by packages like requests and BeautifulSoup to get the html code and to extract all links from it respectively. We then filter the internal links from the obtained links and then recursively crawl them until we reach the required depth.
+
+\subsection{Problems}
+
+We need to achieve the following tasks in our code:
+\begin{enumerate}
+    \item Parse the arguments from command line and interpret different flags
+    \item Parse the url
+    \item Get the links in the html code check if they are working
+    \item Classify different links by their extensions and keep a count of each category
+    \item Look for a robots.txt file and then following the rules if specified in the flags. Also prints sitemap if present
+    \item Print the output in a file or in the command line depending on the flag
+\end{enumerate}
+\newline
+
+\subsection{Solutions}
+
+These tasks are achieved by importing special libraries and using inbuilt python functions:
+\begin{enumerate}
+    \item import argparse to get different flags from command line
+    \item import urlparse from urllib.parse to extract domain and path
+    \item import requests to get the html text and import BeautifulSoup to get the links from the html
+    \item from urllib.parse import urlparse, urljoin to parse the url into blocks and then check the last block to get the extension
+    \item use requests package to check the existence of robots.txt file, a file which sets guidelines as to which part of the website the crawler is allowed to access
+    \item open() and write() functions to write the output in a separate file and print() function to write the output in the command line
+\end{enumerate}
+
+\subsection{Customisation}
+    I have included another option of a flag "-r" which will restrict the crawling operation to the guidelines set by the robots.txt file (if present). This flag will also print all the sites mentioned in the sitemap (if present).
+
+\subsection{Bibliography}
+    Initially I rewrote the code from an existing web crawler \cite{gfg} by including src attribute along with href. Then I wrote the code for parsing command line arguments by taking the CS104 Basic Python Problem 3 as reference. I mainly wrote the output printing and category-wise counting myself. For customisation I visited the wikipedia link of Web-crawler and got the idea of detecting robots.txt from there. \cite{wkpd} After that I wrote the robots.txt and sitemap checking code myself from prior knowledge.
+
+\subsection{Running the code}
+    There is no need to compile the project code since it is written in python so we can run it directly. To compile the LaTeX files into a .pdf file we run the following commands:
+    \begin{verbatim}
+    pdflatex main.tex
+    bibtex main.aux
+    pdflatex main.tex
+    pdflatex main.tex
+    \end{verbatim}
+    whiich you can eaily do so by just running the make file by typing make on command line
+    
+\section{Appendix}
+\subsection{Pseudocode}
+\label{sec:code}
+\begin{verbatim}
+    
+
+function check_robots_txt(url):
+    robots_url = url + "/robots.txt"
+    response = send_http_request(robots_url)
+    
+    if response.status_code == 200:
+        print "robots.txt file found on", url
+    else:
+        print "No robots.txt file found on", url
+
+function crawl(url, threshold, output_file):
+    visited_links = set()
+    file_counts = {}
+    files = {}
+    
+    parsed_url = parse_url(url)
+    base_domain = get_base_domain(parsed_url)
+    
+    function extract_file_type(link):
+        parsed_url = parse_url(link)
+        path = get_path(parsed_url)
+        file_type = get_file_extension(path)
+        return file_type
+    
+    function process_link(link, depth):
+        if link in visited_links or depth > threshold:
+            return
+        
+        add_link_to_visited_links(link)
+        response = send_http_request(link)
+        
+        if response.status_code != 200:
+            return
+        
+        soup = parse_html_response(response.text)
+        links = find_links_in_html(soup, ["a", "link", "script", "img"])
+        
+        for link in links:
+            href = get_attribute_value(link, "href")
+            src = get_attribute_value(link, "src")
+            
+            if href:
+                href = construct_absolute_url(url, href)
+                parsed_href = parse_url(href)
+                href_domain = get_domain(parsed_href)
+                
+                if href_domain == base_domain:
+                    file_type = extract_file_type(href)
+                    if file_type:
+                        increment_file_type_count(file_counts, file_type)
+                        add_link_to_files(files, file_type, href)
+                        if output_file:
+                            write_to_output_file(output_file, href)
+                    
+                    process_link(href, depth + 1)
+            
+            if src:
+                src = construct_absolute_url(url, src)
+                parsed_src = parse_url(src)
+                src_domain = get_domain(parsed_src)
+                
+                if src_domain == base_domain:
+                    file_type = extract_file_type(src)
+                    if file_type:
+                        increment_file_type_count(file_counts, file_type)
+                        add_link_to_files(files, file_type, src)
+                        if output_file:
+                            write_to_output_file(output_file, src)
+                    
+                    process_link(src, depth + 1)
+    
+    process_link(url, 1)
+    
+    if not output_file:
+        print "At recursion level", threshold
+        print "Total files found:", calculate_total_file_count(file_counts)
+        for file_type, links in files.items():
+            print capitalize(file_type) + ":", get_link_count(links)
+            for link in links:
+                print link
+    else:
+        open_output_file(output_file)
+        write_output_file_header(output_file, threshold)
+        write_total_files_found(output_file, calculate_total_file_count(file_counts))
+        for file_type, links in files.items():
+            write_file_type_header(output_file, capitalize(file_type), get_link_count(links))
+            for link in links:
+                write_link_to_output_file(output_file, link)
+        close_output_file(output_file)
+
+if __name__ == "__main__":
+    parser = create_argument_parser()
+    add_url_argument(parser)
+    add_threshold_argument(parser)
+    add_output_argument(parser)
+    args = parse_arguments(parser)
+    
+    url = get_url_from_arguments(args)
+    threshold = get_threshold_from_arguments(args)
+    output = get_output_from_arguments(args)
+    
+    if not output:
+        crawl(url, threshold, None)
+    else:
+        crawl(url, threshold, output)
+
+\end{verbatim}
+
+\bibliographystyle{plain}
+\bibliography{name}
+
+\end{document}
