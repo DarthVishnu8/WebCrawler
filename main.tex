@@ -56,10 +56,10 @@ These tasks are achieved by importing special libraries and using inbuilt python
 \end{enumerate}
 
 \subsection{Customisation}
-    I have included another option of a flag "-r" which will restrict the crawling operation to the guidelines set by the robots.txt file (if present). This flag will also print all the sites mentioned in the sitemap (if present).
+    I have included another option of a flag "-r" which will restrict the crawling operation to the guidelines set by the robots.txt file (if present). This flag will also print all the sites mentioned in the sitemap (if present). Additionally the code will also give a summary at the end of the file of the total files corresponding to each file type. This data is then used to create a pie chart using matplotlib.
 
 \subsection{Bibliography}
-    Initially I rewrote the code from an existing web crawler \cite{gfg} by including src attribute along with href. Then I wrote the code for parsing command line arguments by taking the CS104 Basic Python Problem 3 as reference. I mainly wrote the output printing and category-wise counting myself. For customisation I visited the wikipedia link of Web-crawler and got the idea of detecting robots.txt from there. \cite{wkpd} After that I wrote the robots.txt and sitemap checking code myself from prior knowledge.
+    Initially I rewrote the code from an existing web crawler \cite{gfg} by including src attribute along with href. Then I wrote the code for parsing command line arguments by taking the CS104 Basic Python Problem 3 as reference. I mainly wrote the output printing and category-wise counting myself. For customisation I visited the wikipedia link of Web-crawler and got the idea of detecting robots.txt from there. \cite{wkpd} After that I wrote the robots.txt and sitemap checking code myself from prior knowledge. The pie chart code was also written by me.
 
 \subsection{Running the code}
     There is no need to compile the project code since it is written in python so we can run it directly. To compile the LaTeX files into a .pdf file we run the following commands:
