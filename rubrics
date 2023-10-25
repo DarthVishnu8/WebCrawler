@@ -1,0 +1,38 @@
+### Q2: Introsort
+
+[4 min read]
+
+Please read the below information carefully (cribs that are addressed here will receive negative marking). There are 10 testcases, max_score = 8/8. Final score is number-of-testcases-passed * 0.8 - penalty.
+
+### Calculating score
+
+- No marks if compilation error.
+- No marks if disallowed headers or functions (eg. std::sort for sorting/std::sort_heap for heapsort etc) are used.
+- No marks if one or more of the three functions to be filled are empty. (see section on partial marking)
+- Testcases: 3 cases are random arrays, 2 are sorted arrays, 2 are reverse sorted arrays, there is 1 array with all equal values, and the last two cases are an empty array and a singleton array. No marks for a testcase if the time limit is exceeded (array size is < 1e4, time given is 2s per testcase on grading machine - solution file takes < 0.1s on most cases)
+
+### Penalties
+
+- 4 if partition is not used in introsort().
+- 3 if hsort is not used in introsort().
+- 2 if isort is not used in introsort().
+
+### Running the autograder
+
+- Testcases are in the ``testbench/`` subdirectory inside the current directory.
+- Move your files ``introsort.cpp``, ``partition.cpp``, ``hsort.cpp`` to current directory. Leave the files ``main.cpp`` and ``isort.cpp`` as is.
+- run the autograder as ``python3 autograder.py {your-name}``. Your score will show up in the output file ``score.csv``. There are enough prints to let you know exactly which testcases failed and why.
+
+### Important notes
+
+- All headers in your files have been replaced with only the headers allowed. ``using namespace std;`` has been added to all your files. Look at your files after the autograder runs to see the changes made. Thus, a compilation error can be because of using a disallowed header as well.
+- You may ignore the comments that start with ``flag-``.
+
+### Partial marking
+
+- Partial marking of upto +3 for every correctly implemented function (note that only correctness is checked, not efficiency) out of the two key functions: ``partition`` and ``hsort``. These marks are additive, which means that a perfect solution to both functions will get you +6.
+- The final score is the maximum of the score that the autograder gave you and the score that you get from the partial marking. Note that the autograder and the partial marking scheme have been run on both the gitlab and local submissions, with max taken everywhere.
+
+### Sample ``score.csv``
+
+``John Doe,6.4,ok``
